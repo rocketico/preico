@@ -51,6 +51,12 @@ contract PreRockToken is MintableToken {
 
     uint8 public decimals;
 
+    uint256 public minFundedEthValue;
+
+    mapping(address => uint256) public donations;
+
+    uint256 public totalWeiFunded;
+
     uint256 public maxTokensToMint;
 
     // address where funds are collected
@@ -64,6 +70,7 @@ contract PreRockToken is MintableToken {
     function PreRockToken(
     uint256 _rate,
     uint256 _maxTokensToMint,
+    uint256 _minValue,
     address _wallet,
     string _name,
     string _symbol,
@@ -72,6 +79,7 @@ contract PreRockToken is MintableToken {
         require(_rate > 0);
         require(_wallet != 0x0);
 
+        minFundedEthValue = _minValue;
         rate = _rate;
         maxTokensToMint = _maxTokensToMint;
         wallet = _wallet;
@@ -100,13 +108,16 @@ contract PreRockToken is MintableToken {
         uint8 bonus = getBonusPercents();
 
         // calculate token amount to be created
-        uint256 tokens = weiAmount.div(rate);
+        uint256 tokens = weiAmount.mul(rate);
 
         if(bonus > 0){
             tokens += tokens * bonus / 100;    // add bonus
         }
 
         require(totalSupply + tokens <= maxTokensToMint);
+
+        totalWeiFunded += msg.value;
+        donations[msg.sender] += msg.value;
 
         mintInternal(beneficiary, tokens);
         TokenPurchase(
